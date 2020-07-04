@@ -1,160 +1,84 @@
-growi-docker-compose
+growi-docker-compose for Raspberry Pi
 =====================
 
-Quick start [GROWI](https://github.com/weseek/growi) with docker-compose
+これなに?
+---------
+- Growiのdocker-compose版([growi-docker-compose](https://github.com/weseek/growi-docker-compose))をRaspberry Pi(以下ラズパイ)上のdocker-composeで実行できるように修正したものです
+  - ラズパイのDocker-composeで動かすには，ラズパイの設定の変更が必要なので，注意点を確認してください．
 
-![GROWI-x-dockercompose](https://user-images.githubusercontent.com/1638767/38307565-105956e2-384f-11e8-8534-b1128522d68d.png)
+- オリジナル版との大きな違いは [Dockerfile](./Dockerfile), [Dockerfile of Elasticsearch](./elasticsearch/Dockerfile), [docker-compose.yml](./docker-compose.yml)の3点で，ラズパイのプロセッサであるarm64v8用に書き直しました．
 
+- ```docker-compose up -d --build```で実行する前に，[docker-compose.yml](./docker-compose.yml)で設定を確認してください．詳細は[本家](https://github.com/weseek/growi-docker-compose)に詳しいことが書かれているので，そちらで確認をお願いします.
+  - growiのデータは，初期では./dataに保存されるので[docker-compose.yml](./docker-compose.yml)のvolumesを適宜修正してください．
 
-Table of Contents
------------------
-
-1. [Start](#start)
-1. [Upgrade](#upgrade)
-1. [Migrate from crowi-plus-docker-compose](#migrate-from-crowi-plus-docker-compose)
-1. [How to install plugins](#how-to-install-plugins)
-1. [NOTE: DISABLED Environment Variables](#note-disabled-environment-variables)
-1. [More convenient Examples](#more-convenient-examples)
-1. [Documentation](#documentation)
-
-
-
-Start
-------
-
-```bash
-git clone https://github.com/weseek/growi-docker-compose.git growi
-cd growi
-docker-compose up
-```
-
-and access to http://localhost:3000
-
-### How to access from other than localhost
-
-Edit `docker-compose.yml` and modify `ports` for app
-
-#### Before
-
-```yml
-services:
-  app:
-    ports:
-      - 127.0.0.1:3000:3000
-```
-
-#### After
-
-```yml
-services:
-  app:
-    ports:
-      - 3000:3000
-```
-
-### For High-memory environment
-
-If you have enough memory, increase heap size for Elasticsearch with `ES_JAVA_OPTS` value in `docker-compose.yml`.
-
-```yml
-environment:
-  - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
-```
-
-Upgrade
--------
-
-### Check upgrading guide
-
-Access to [Admin's guide - GROWI Docs](https://docs.growi.org/en/admin-guide/)  
-and see 'Upgrading' section.
-
-### Upgrading app container
-
-```bash
-# go to growi-docker-compose workdir
-cd growi
-
-# stop
-docker-compose stop
-
-# remove current container and images
-docker-compose rm app
-docker rmi weseek/growi:4
-
-# rebuild app container image
-git pull
-docker-compose build
-
-# start
-docker-compose up
-```
-
-Migrate from crowi-plus-docker-compose
----------------------------------------
-
-If you have used [weseek/crowi-plus docker image](https://hub.docker.com/r/weseek/crowi-plus/) with docker-compose so far, please see [migration document](https://docs.growi.org/guide/migration-guide/from-crowi-plus-docker-compose.html).
+注意点
+--------
+- Mongo3 は64bit版のOSしかサポートしていないので，ラズパイのカーネルを64bit版に修正する必要があります．
+  - アップグレード方法は[こちら](https://www.raspberrypi.org/forums/viewtopic.php?t=250730)に書いてある通りです．(アップグレードは自己責任でお願いします)
+- ラズパイのdockerとdocker-composeも64bit版をインストールする必要があります．
+  - docker のインストール方法については[こちら](https://docs.docker.com/engine/install/binaries/). 
+- ラズパイ3B+(1GB RAM)を使用している場合はスワップメモリを増やす必要があります(RAMが少ないとビルド中に固まるため)．参考までに，私の環境では100MBから2048MBに変更しました．
+  - Raspberry Pi4の4GBではメモリが十分にあるので，恐らくスワップメモリを増やす必要はありません
+- ビルドには30分以上かかります
 
 
-How to install plugins
------------------------
+動作環境
+---------
+- 動作を確認した環境は以下の通りです．
 
-edit `Dockerfile` and activate commented out lines.
+  - Raspberry Pi 3 model B+
+  - OS: Raspbian Buster ver2010-09-29
+  - Docker: 19.03.5
+  - Docker-compose: 1.21.0
+  - Kernel:  5.4.49-v8+
+  - Growi: 4.0.7
+  - mongo: 3.6
+  - elasticsearch: 6.6.1
+  - nodejs: 10.18.1
 
-### Example
+ライセンス
+---------
+* The MIT License (MIT)
+* See LICENSE file.
 
-```dockerfile
-# install plugins if necessary
-RUN echo "install plugins" \
-  && yarn add \
-     growi-plugin-XXX \
-     growi-plugin-YYY \
-  && echo "done."
-# you must rebuild if install plugin at least one
-RUN npm build:prod
-```
-    
-NOTE: DISABLED Environment Variables
--------------------------------------
+以下英語版
 
-Followings are **unchangable**.
+What is this?
+---------
+- This repository was forked from [growi-docker-compose](https://github.com/weseek/growi-docker-compose) and modified for running on Raspberry Pi.
+  - The setting changes of Raspberry Pi is required. Please see Warning. 
 
-- PORT
-- NODE_ENV
+- The main differences from the original are the main [Dockerfile](./Dockerfile), [Dockerfile of Elasticsearch](./elasticsearch/Dockerfile), and [docker-compose.yml](./docker-compose.yml).
 
-Followings are **disabled** because they are overwritten by `docker-compose.yml`
+- Before running ```docker-compose up -d --build```, please check the settings in [docker-compose.yml](./docker-compose.yml).
+  The detail is [here](https://github.com/weseek/growi-docker-compose).
 
-- MONGO_URI
-- PASSWORD_SEED
+    - The data of growi will save in ./data initially. Please change volumes of [docker-compose.yml](./docker-compose.yml) in advance.
 
-Change `docker-compose.yml` if you need.
+Warning
+---------
+  - Since Mongo3 supports a 64-bit kernel only, so __RaspberryPi must be running on the 64-bit kernel__.
+    - A detail how to upgrade to the 64-bit kernel is [here](https://www.raspberrypi.org/forums/viewtopic.php?t=250730)
+  - You __need to install the 64bit version of docker and docker-compose.__
+    - I installed the 64-bit docker from binary. Please see [here](https://docs.docker.com/engine/install/binaries/). 
+  - If you use Raspberry Pi which does not have small memory, e.g. Raspberry Pi 3B+, 1GB RAM, __you need to change the swap size of RAM__. In my case, changed 100MB to 2048MB.
+  - It takes __at least 30 minutes__ to build growi on Raspberry Pi 3B+. 
 
-Others conform to [weseek/growi](https://github.com/weseek/growi#environment-variables)
-
-
-More convenient Examples
--------------------------
-
-* [Multiple sites](https://github.com/weseek/growi-docker-compose/tree/master/examples/multi-app)
-* [HTTPS(with Let's Encrypt) proxy integration](https://github.com/weseek/growi-docker-compose/tree/master/examples/https-portal)
-* [HackMD(CodiMD) integration](https://github.com/weseek/growi-docker-compose/tree/master/examples/integrate-with-hackmd)
-* [Backup MongoDB data](https://github.com/weseek/growi-docker-compose/tree/master/examples/backup-mongodb-data)
-
-
-Documentation
---------------
-
-* [GROWI Docs](https://docs.growi.org/)
-  
-  
-Issues
-------
-
-If you have any problems or questions about this image, please contact us through a [GitHub issue](https://github.com/weseek/growi-docker-compose/issues).
-
+My environment
+---------
+  - Raspberry Pi 3 model B+
+  - OS: Raspbian Buster ver2010-09-29
+  - Docker: 19.03.5
+  - Docker-compose: 1.21.0
+  - Kernel:  5.4.49-v8+
+  - Growi: 4.0.7
+  - mongo: 3.6
+  - elasticsearch: 6.6.1
+  - nodejs: 10.18.1
 
 License
 ---------
-
 * The MIT License (MIT)
 * See LICENSE file.
+
+

@@ -1,29 +1,32 @@
-FROM weseek/growi:4
-LABEL maintainer Yuki Takei <yuki@weseek.co.jp>
+FROM arm64v8/node:10.18.1-alpine3.11
+# FROM arm64v8/node:12.18.1-alpine3.11
 
-ENV APP_DIR /opt/growi
+WORKDIR /opt
 
-# install dockerize
 ENV DOCKERIZE_VERSION v0.6.1
-USER root
-RUN apk add --no-cache --virtual .dl-deps curl \
-    && curl -sL https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
-        | tar -xz -C /usr/local/bin \
-    && apk del .dl-deps
+ENV ARCH linux-armhf
+ENV GROWI_VERSION v4.0.7
+# ENV GROWI_VERSION v3.6.3
 
-WORKDIR ${APP_DIR}
+# USER root
+RUN apk --no-cache --virtual .del add curl git python make g++ wget openssl
 
-# install plugins if necessary
-# ;;
-# ;; NOTE: In GROWI v3 and later,
-# ;;       2 of official plugins (growi-plugin-lsx and growi-plugin-pukiwiki-like-linker)
-# ;;       are now included in the 'weseek/growi' image.
-# ;;       Therefore you will not need following lines except when you install third-party plugins.
-# ;;
-#RUN echo "install plugins" \
-#  && yarn add \
-#      growi-plugin-XXX \
-#      growi-plugin-YYY \
-#  && echo "done."
-# you must rebuild if install plugin at least one
-# RUN npm run build:prod
+# Installation growi
+RUN git clone https://github.com/weseek/growi growi
+
+WORKDIR /opt/growi
+
+RUN git checkout -b ${GROWI_VERSION} refs/tags/${GROWI_VERSION}
+
+# install node_modules
+RUN yarn --network-timeout 6000000
+
+# build Growi
+RUN npm run build:prod
+
+# Download dockerize
+RUN wget https://github.com/jwilder/dockerize/releases/download/${DOCKERIZE_VERSION}/dockerize-${ARCH}-${DOCKERIZE_VERSION}.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-${ARCH}-${DOCKERIZE_VERSION}.tar.gz \
+    && rm dockerize-${ARCH}-${DOCKERIZE_VERSION}.tar.gz
+
+RUN apk del .del

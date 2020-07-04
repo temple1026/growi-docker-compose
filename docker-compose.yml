@@ -1,12 +1,15 @@
 version: '3'
 
 services:
-  app:
+  growi:
     build:
       context: .
       dockerfile: ./Dockerfile
+    image: growi-pi:4.0.7 # Please change if you need
+    container_name: growi
     ports:
       - 127.0.0.1:3000:3000    # localhost only by default
+      # - 3000:3000 # my setting
     links:
       - mongo:mongo
       - elasticsearch:elasticsearch
@@ -16,7 +19,7 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017/growi
       - ELASTICSEARCH_URI=http://elasticsearch:9200/growi
-      - PASSWORD_SEED=changeme
+      # - PASSWORD_SEED=password
       # - FILE_UPLOAD=mongodb   # activate this line if you use MongoDB GridFS rather than AWS
       # - FILE_UPLOAD=local     # activate this line if you use local storage of server rather than AWS
       # - MATHJAX=1             # activate this line if you want to use MathJax
@@ -27,25 +30,32 @@ services:
       # - FORCE_WIKI_MODE='private'   # activate this line to force wiki private mode
 
     command: "dockerize
-              -wait tcp://mongo:27017
-              -wait tcp://elasticsearch:9200
-              -timeout 60s
-              npm run server:prod"
+               -wait tcp://mongo:27017
+               -wait tcp://elasticsearch:9200
+               -timeout 120s
+               npm run server:prod" # Changed 60s to 120s.
+    # command: npm run server:prod 
     restart: unless-stopped
     volumes:
       - growi_data:/data
+    tty: true
 
   mongo:
-    image: mongo:3.6
+    image: arm64v8/mongo:3.6
+    container_name: mongo
     restart: unless-stopped
     volumes:
       - mongo_configdb:/data/configdb
       - mongo_db:/data/db
 
   elasticsearch:
+    # image: webhippie/elasticsearch:6.4
     build:
       context: ./elasticsearch
       dockerfile: ./Dockerfile
+    image: elasticsearch:6.6.1
+    container_name: es
+    command: sh bin/elasticsearch
     environment:
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms256m -Xmx256m"  # increase amount if you have enough memory
@@ -54,12 +64,33 @@ services:
         soft: -1
         hard: -1
     restart: unless-stopped
+    ports:
+      - 9200:9200
+      - 9300:9300
     volumes:
       - es_data:/usr/share/elasticsearch/data
-      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
-
+      - ./elasticsearch/config:/usr/share/elasticsearch/config
+    tty: true
+    
 volumes:
   growi_data:
+     driver_opts:
+        type: none
+        device: $PWD/data/growi_data # Please change if you need.
+        o: bind
   mongo_configdb:
+     driver_opts:
+         type: none
+         device: $PWD/data/mongo_configdb
+         o: bind
   mongo_db:
+     driver_opts:
+         type: none
+         device: $PWD/data/mongo_db
+         o: bind
   es_data:
+     driver_opts:
+         type: none
+         device: $PWD/data/es_data
+         o: bind
+         
